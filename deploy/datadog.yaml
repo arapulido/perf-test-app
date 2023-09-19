@@ -1,0 +1,69 @@
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+spec:
+  global:
+    clusterName: perftest
+    kubelet:
+      tlsVerify: false
+    credentials:
+      apiSecret:
+        secretName: datadog-secret
+        keyName: api-key
+      appSecret:
+        secretName: datadog-secret
+        keyName: app-key
+  features:
+    logCollection:
+      enabled: true
+      containerCollectAll: true
+    apm:
+      enabled: true
+      hostPortConfig:
+        enabled: true
+    liveProcessCollection:
+      enabled: true
+  override:
+    nodeAgent:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+          operator: Exists
+      image:
+        tag: 7.47.0
+      extraConfd:
+        configMap:
+          name: datadog-checks
+      volumes:
+        - hostPath:
+            path: /etc/kubernetes/pki/etcd
+          name: etcd-certs
+        - name: disable-etcd-autoconf
+          emptyDir: {}
+      containers:
+        agent:
+          volumeMounts:
+            - name: etcd-certs
+              mountPath: /host/etc/kubernetes/pki/etcd
+              readOnly: true
+            - name: disable-etcd-autoconf
+              mountPath: /etc/datadog-agent/conf.d/etcd.d
+    clusterAgent:
+      image:
+        tag: 7.47.0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-checks
+data:
+  etcd.yaml: |-
+    ad_identifiers:
+      - etcd
+    init_config:
+    instances:
+      - prometheus_url: https://%%host%%:2379/metrics
+        tls_ca_cert: /host/etc/kubernetes/pki/etcd/ca.crt
+        tls_cert: /host/etc/kubernetes/pki/etcd/server.crt
+        tls_private_key: /host/etc/kubernetes/pki/etcd/server.key

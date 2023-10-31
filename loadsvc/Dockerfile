@@ -8,7 +8,7 @@ FROM python:3.9.6-slim-buster
 RUN export DEBIAN_FRONTEND=noninteractive && \
     apt-get update && \
     apt-get upgrade --yes && \
-    apt-get install --yes build-essential libpq-dev && \
+    apt-get install --yes stress-ng build-essential libpq-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

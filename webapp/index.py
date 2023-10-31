@@ -4,6 +4,9 @@ import threading
 
 app = Flask(__name__)
 
+def async_call(payload):
+    requests.get('http://async:5002/load', params=payload)
+
 @app.route('/')
 def hello_world():
     return 'Hello, World!'
@@ -13,20 +16,20 @@ def do_work():
 
     nthreads_sync = int(request.args.get('nthreads_sync', 2))
     nthreads_async = int(request.args.get('nthreads_async', 2))
-    cycles_sync = int(request.args.get('cycles_sync', 5000000))
-    cycles_async = int(request.args.get('cycles_async', 5000000))
+    timeout_sync = int(request.args.get('timeout_sync', 60))
+    timeout_async = int(request.args.get('timeout_async', 60))
     call_type = request.args.get('type', 'both')
 
-    payload = {'nthreads': nthreads_sync, 'cycles': cycles_sync}
+    payload = {'nthreads': nthreads_sync, 'timeout': timeout_sync}
 
     if call_type in ('both', 'sync'):
         requests.get('http://sync:5001/load', params=payload)
 
     print("Finished sync calls")
 
-    payload = {'nthreads': nthreads_async, 'cycles': cycles_async}
+    payload = {'nthreads': nthreads_async, 'timeout': timeout_async}
 
-    if type in ('both', 'async'):
+    if call_type in ('both', 'async'):
         t = threading.Thread(target=async_call, args=(payload,))
         t.daemon = True
         t.start()

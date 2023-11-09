@@ -2,32 +2,52 @@ This repository contains a test application built to investigate how CPU request
 
 # Getting started
 
-* Create a test cluster:
-
-`kind create cluster --name perf_test --config ./deploy/none/kind_none.yaml`
-
 * Deploy the `loadsvc` applications:
 
-`kubectl apply -f ./deploy/none/sync.yaml && kubectl apply -f ./deploy/none/async.yaml`
+```
+kubectl apply -f ./deploy/none/sync.yaml && kubectl apply -f ./deploy/none/async.yaml
+```
 
 * Deploy the `webapp` application:
 
-`kubectl apply -f ./deploy/none/webapp.yaml`
+```
+kubectl apply -f ./deploy/none/webapp.yaml
+```
 
 * Port-forward the `webapp` port:
 
-`kubectl port-forward deployment/webapp 8282`
+```
+kubectl port-forward deployment/webapp 8282
+```
 
 * Generate some load (defaults to 2 CPUs per `loadsvc` service, during 60 seconds):
 
-`curl http://localhost:8282/do_work`
+```
+curl http://localhost:8282/do_work
+```
 
 ## (Optional) Deploy the Datadog Agent
 
 The applications are already instrumented for APM with Datadog. To get metrics, traces, and logs into Datadog, follow the instructions below:
 
-* `kubectl create secret generic datadog-secret --from-literal=api-key=<YOUR_DD_API_KEY> --from-literal=app-key=<YOUR_DD_APP_KEY>`
-* `kubectl apply -f ./deploy/none/datadog.yaml`
+* Deploy the Datadog Operator:
+
+```
+helm repo add datadog https://helm.datadoghq.com
+helm install my-datadog-operator datadog/datadog-operator
+```
+
+* Create a secret with your Datadog credentials:
+
+```
+kubectl create secret generic datadog-secret --from-literal=api-key=<YOUR_DD_API_KEY> --from-literal=app-key=<YOUR_DD_APP_KEY>
+```
+
+* Deploy the Datadog Agent:
+
+```
+kubectl apply -f ./deploy/none/datadog.yaml
+```
 
 # Architecture
 
@@ -42,8 +62,8 @@ The main web service, `webapp`, exposes a couple of endpoints:
  * `/`: Just a test endpoint, returns "Hello, world!"
  * `/do_work`: The main endpoint, which launches a call to the `sync` service, to the `async` service, or both. It has several parameters:
    * `type`: the type of service to call. Potential values: `async`, `sync`, `both`. Default: `both`.
-   * `nthreads_sync`: the number of CPUs to stress in the `sync` service. Default: 2.
-   * `nthreads_async`: the number of CPUs to stress in the `async` service. Default: 2.
+   * `ncpus`: the number of CPUs to stress in the `sync` service. Default: 2.
+   * `ncpus_async`: the number of CPUs to stress in the `async` service. Default: 2.
    * `timeout_sync`: the time in seconds to stress the CPUs in the `sync` service. Default: 60.
    * `timeout_async`: the time in seconds to stress the CPUs in the `async` service. Default: 60.
 
@@ -55,5 +75,5 @@ It exposes two endpoints:
 
  * `/`: Test endpoint, returns the number of CPUs in the node where the pod is deployed
  * `/load`: The main endpoint, which launches `stress-ng`. It has a couple of parameters:
-   * `nthreads`: the number of CPUs to stress. Default: 2.
+   * `ncpus`: the number of CPUs to stress. Default: 2.
    * `timeout`: the time in seconds to stress the CPUs. Default: 60.

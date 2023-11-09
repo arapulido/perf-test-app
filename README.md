@@ -62,7 +62,7 @@ The main web service, `webapp`, exposes a couple of endpoints:
  * `/`: Just a test endpoint, returns "Hello, world!"
  * `/do_work`: The main endpoint, which launches a call to the `sync` service, to the `async` service, or both. It has several parameters:
    * `type`: the type of service to call. Potential values: `async`, `sync`, `both`. Default: `both`.
-   * `ncpus`: the number of CPUs to stress in the `sync` service. Default: 2.
+   * `ncpus_sync`: the number of CPUs to stress in the `sync` service. Default: 2.
    * `ncpus_async`: the number of CPUs to stress in the `async` service. Default: 2.
    * `timeout_sync`: the time in seconds to stress the CPUs in the `sync` service. Default: 60.
    * `timeout_async`: the time in seconds to stress the CPUs in the `async` service. Default: 60.

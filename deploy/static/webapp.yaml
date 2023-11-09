@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: webapp
+    app: perfapp
+  name: webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: webapp
+      app: perfapp
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: webapp
+        app: perfapp
+    spec:
+      containers:
+      - image: arapulido/perf_app_web:latest
+        imagePullPolicy: Always
+        name: perfappweb
+        command: ["ddtrace-run"]
+        args: ["flask", "run", "--port=8282", "--host=0.0.0.0"]
+        env:
+          - name: FLASK_APP
+            value: "index.py"
+          - name: FLASK_DEBUG
+            value: "1"
+          - name: DD_ENV
+            value: "perftesting"
+          - name: DD_VERSION
+            value: "1.0"
+          - name: DD_SERVICE
+            value: "webapp"
+          - name: DD_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: DD_LOGS_INJECTION
+            value: "true"
+          - name: DD_ANALYTICS_ENABLED
+            value: "true"
+          - name: DD_PROFILING_ENABLED
+            value: "true"
+        ports:
+        - containerPort: 8282
+        resources: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: webapp
+    app: perfapp
+  name: webapp
+spec:
+  ports:
+  - port: 8282
+    protocol: TCP
+    targetPort: 8282
+  selector:
+    service: syncsvc
+    app: perfapp
+status:

@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
-    output = "Number of cores: %d" % cpu_count()
+    output = "Number of cpus: %d" % cpu_count()
     return output
 
 @app.route("/load")

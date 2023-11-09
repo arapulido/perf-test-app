@@ -11,7 +11,8 @@ def async_call(payload):
 def hello_world():
     return 'Hello, World!'
 
-@app.route("/do_request")
+
+@app.route("/do_work")
 def do_work():
 
     nthreads_sync = int(request.args.get('nthreads_sync', 2))

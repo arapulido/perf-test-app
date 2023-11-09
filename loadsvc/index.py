@@ -12,8 +12,8 @@ def hello():
 @app.route("/load")
 def do_work():
     timeout = int(request.args.get('timeout', '60'))
-    nthreads = int(request.args.get('nthreads', '2'))
+    ncpus = int(request.args.get('ncpus', '2'))
 
-    subprocess.run(["stress-ng", "--cpu", str(nthreads), "--timeout", str(timeout)])
+    subprocess.run(["stress-ng", "--cpu", str(ncpus), "--timeout", str(timeout)])
 
     return '', 200

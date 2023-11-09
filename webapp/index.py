@@ -15,20 +15,20 @@ def hello_world():
 @app.route("/do_work")
 def do_work():
 
-    nthreads_sync = int(request.args.get('nthreads_sync', 2))
-    nthreads_async = int(request.args.get('nthreads_async', 2))
+    ncpus_sync = int(request.args.get('ncpus_sync', 2))
+    ncpus_async = int(request.args.get('ncpus_async', 2))
     timeout_sync = int(request.args.get('timeout_sync', 60))
     timeout_async = int(request.args.get('timeout_async', 60))
     call_type = request.args.get('type', 'both')
 
-    payload = {'nthreads': nthreads_sync, 'timeout': timeout_sync}
+    payload = {'ncpus': ncpus_sync, 'timeout': timeout_sync}
 
     if call_type in ('both', 'sync'):
         requests.get('http://sync:5001/load', params=payload)
 
     print("Finished sync calls")
 
-    payload = {'nthreads': nthreads_async, 'timeout': timeout_async}
+    payload = {'ncpus': ncpus_async, 'timeout': timeout_async}
 
     if call_type in ('both', 'async'):
         t = threading.Thread(target=async_call, args=(payload,))

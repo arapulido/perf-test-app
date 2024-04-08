@@ -63,6 +63,6 @@ spec:
     protocol: TCP
     targetPort: 8282
   selector:
-    service: syncsvc
+    service: webapp
     app: perfapp
 status:

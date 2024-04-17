@@ -1,11 +1,14 @@
 from flask import Flask, request
 import requests
 import threading
+from ddtrace import tracer
 
 app = Flask(__name__)
 
-def async_call(payload):
-    requests.get('http://async:5002/load', params=payload)
+def async_call(payload, trace_ctx=None):
+    tracer.context_provider.activate(trace_ctx)
+    with tracer.trace("async_call"):
+        requests.get('http://async:5002/load', params=payload)
 
 @app.route('/')
 def hello_world():
@@ -27,14 +30,15 @@ def do_work():
     payload = {'ncpus': ncpus_sync, 'load': load_sync, 'timeout': timeout_sync}
 
     if call_type in ('both', 'sync'):
-        requests.get('http://sync:5001/load', params=payload)
+        with tracer.trace("sync_call"):
+            requests.get('http://sync:5001/load', params=payload)
 
     print("Finished sync calls")
 
     payload = {'ncpus': ncpus_async, 'load': load_async, 'timeout': timeout_async}
 
     if call_type in ('both', 'async'):
-        t = threading.Thread(target=async_call, args=(payload,))
+        t = threading.Thread(target=async_call, args=(payload, tracer.current_trace_context(), ))
         t.daemon = True
         t.start()
 

@@ -11,7 +11,7 @@ def hello():
 
 @app.route("/load")
 def do_work():
-    timeout = int(request.args.get('timeout', '60'))
+    ops = int(request.args.get('ops', '10000'))
     ncpus = int(request.args.get('ncpus', '2'))
     load = int(request.args.get('load', '100'))
 
@@ -20,6 +20,6 @@ def do_work():
     if load < 0:
         load = 0
 
-    subprocess.run(["stress-ng", "--cpu", str(ncpus), "--cpu-load", str(load), "--cpu-load-slice", "100", "--timeout", str(timeout)])
+    subprocess.run(["stress-ng", "--cpu", str(ncpus), "--cpu-load", str(load), "--cpu-load-slice", "100", "--cpu-ops", str(ops)])
 
     return '', 200

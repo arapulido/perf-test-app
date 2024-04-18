@@ -20,14 +20,14 @@ def do_work():
 
     ncpus_sync = int(request.args.get('ncpus_sync', 2))
     ncpus_async = int(request.args.get('ncpus_async', 2))
-    timeout_sync = int(request.args.get('timeout_sync', 60))
-    timeout_async = int(request.args.get('timeout_async', 60))
+    ops_sync = int(request.args.get('ops_sync', 5000))
+    ops_async = int(request.args.get('ops_async', 10000))
     load_sync = int(request.args.get('load_sync', 100))
     load_async = int(request.args.get('load_async', 100))
 
     call_type = request.args.get('type', 'both')
 
-    payload = {'ncpus': ncpus_sync, 'load': load_sync, 'timeout': timeout_sync}
+    payload = {'ncpus': ncpus_sync, 'load': load_sync, 'ops': ops_sync}
 
     if call_type in ('both', 'sync'):
         with tracer.trace("sync_call"):
@@ -35,7 +35,7 @@ def do_work():
 
     print("Finished sync calls")
 
-    payload = {'ncpus': ncpus_async, 'load': load_async, 'timeout': timeout_async}
+    payload = {'ncpus': ncpus_async, 'load': load_async, 'ops': ops_async}
 
     if call_type in ('both', 'async'):
         t = threading.Thread(target=async_call, args=(payload, tracer.current_trace_context(), ))

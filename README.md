@@ -64,8 +64,8 @@ The main web service, `webapp`, exposes a couple of endpoints:
    * `type`: the type of service to call. Potential values: `async`, `sync`, `both`. Default: `both`.
    * `ncpus_sync`: the number of CPUs to stress in the `sync` service. Default: 2.
    * `ncpus_async`: the number of CPUs to stress in the `async` service. Default: 2.
-   * `timeout_sync`: the time in seconds to stress the CPUs in the `sync` service. Default: 60.
-   * `timeout_async`: the time in seconds to stress the CPUs in the `async` service. Default: 60.
+   * `ops_sync`: the number of bogus operations to run to stress the CPUs in the `sync` service. Default: 5000.
+   * `ops_async`: the number of bogus operations to run to stress the CPUs in the `async` service. Default: 10000.
 
 ## `loadsvc`
 

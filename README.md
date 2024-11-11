@@ -76,4 +76,4 @@ It exposes two endpoints:
  * `/`: Test endpoint, returns the number of CPUs in the node where the pod is deployed
  * `/load`: The main endpoint, which launches `stress-ng`. It has a couple of parameters:
    * `ncpus`: the number of CPUs to stress. Default: 2.
-   * `timeout`: the time in seconds to stress the CPUs. Default: 60.
+   * `ops`: the number of bogus operations to run to stress the CPUs. Default: 10000.

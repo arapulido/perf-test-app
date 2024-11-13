@@ -38,7 +38,7 @@ It exposes two endpoints:
 Using [`kind`](https://kind.sigs.k8s.io/) create a 3 node cluster named `perfapp` using the provided configuration file:
 
 ```
-kind create cluster --name perfapp --config ./deploy/kind/cluster.yaml
+kind create cluster --name perfapp --config ./tutorial/kind/cluster.yaml
 ```
 
 This will create a 3 node cluster with the following CPUManager configuration:
@@ -52,7 +52,7 @@ perfapp-worker2 | static |
 ## Create the needed namespaces for the tutorial
 
 ```
-kubectl apply -f ./deploy/namespaces.yaml
+kubectl apply -f ./tutorial/namespaces.yaml
 ```
 
 ## Deploy the Datadog Agent
@@ -77,7 +77,7 @@ kubectl create secret generic datadog-secret --from-literal=api-key=$DD_API_KEY 
 * Deploy the Datadog Agent:
 
 ```
-kubectl apply -f ./deploy/datadog/datadog.yaml
+kubectl apply -f ./tutorial/datadog/datadog.yaml
 ```
 
 * Wait until the Cluster Agent and the Node Agents are up and running:
@@ -108,7 +108,7 @@ kubectl drain perfapp-worker2 --ignore-daemonsets --delete-emptydir-data
 Deploy the application wrongly sized (it doesn't have its CPU requests set at all):
 
 ```
-kubectl apply -f ./deploy/app_wrongly_sized/
+kubectl apply -f ./tutorial/app_wrongly_sized/
 ```
 
 Check that the pods are running correctly:
@@ -120,7 +120,7 @@ kubectl get pods -n perfapp
 Generate some traffic against the webapp service:
 
 ```
-kubectl apply -f ./deploy/fake-traffic/regular-traffic.yaml
+kubectl apply -f ./tutorial/fake-traffic/regular-traffic.yaml
 ```
 
 This `busybox` pod calls the `webapp` `do_work` endpoint every 30 seconds, generating some load in both downstream services.
@@ -134,7 +134,7 @@ Once the generated traffic has been running for a while, check the latency of th
 Deploy some pods that are going to utilize 1 core each, and rightly sized (requesting 1 full core each):
 
 ```
-kubectl apply -f ./deploy/stress/
+kubectl apply -f ./tutorial/stress/
 ```
 
 Wait until the pods are running:
@@ -161,25 +161,25 @@ Let's see how we can avoid having CPU-bounded neighbours in our node, by rightsi
 First, remove the `stress` pods:
 
 ```
-kubectl delete -f ./deploy/stress/
+kubectl delete -f ./tutorial/stress/
 ```
 
 Now, we are going to redeploy our `sync` and `async` services, with their pods requesting `800m` CPU each, which is what they need:
 
 ```
-kubectl apply -f ./deploy/app_rightly_sized/
+kubectl apply -f ./tutorial/app_rightly_sized/
 ```
 
 You can check the differences between these and the previous definitions by running:
 
 ```
-diff -u --color ./deploy/app_wrongly_sized ./deploy/app_rightly_sized
+diff -u --color ./tutorial/app_wrongly_sized ./tutorial/app_rightly_sized
 ```
 
 ```
-diff --color -u --color deploy/app_wrongly_sized/async.yaml deploy/app_rightly_sized/async.yaml
---- deploy/app_none_wrongly_sized/async.yaml	2024-11-11 15:15:06
-+++ deploy/app_none_rightly_sized/async.yaml	2024-11-13 10:42:16
+diff --color -u --color tutorial/app_wrongly_sized/async.yaml tutorial/app_rightly_sized/async.yaml
+--- tutorial/app_none_wrongly_sized/async.yaml	2024-11-11 15:15:06
++++ tutorial/app_none_rightly_sized/async.yaml	2024-11-13 10:42:16
 @@ -48,7 +48,9 @@
              value: "true"
          ports:
@@ -189,9 +189,9 @@ diff --color -u --color deploy/app_wrongly_sized/async.yaml deploy/app_rightly_s
 +          requests:
 +            cpu: 800m
  ---
-diff --color -u --color deploy/app_wrongly_sized/sync.yaml deploy/app_rightly_sized/sync.yaml
---- deploy/app_none_wrongly_sized/sync.yaml	2024-11-11 15:15:06
-+++ deploy/app_none_rightly_sized/sync.yaml	2024-11-13 10:42:23
+diff --color -u --color tutorial/app_wrongly_sized/sync.yaml tutorial/app_rightly_sized/sync.yaml
+--- tutorial/app_none_wrongly_sized/sync.yaml	2024-11-11 15:15:06
++++ tutorial/app_none_rightly_sized/sync.yaml	2024-11-13 10:42:23
 @@ -48,7 +48,9 @@
              value: "true"
          ports:
@@ -205,7 +205,7 @@ diff --color -u --color deploy/app_wrongly_sized/sync.yaml deploy/app_rightly_si
 Now try to deploy the stress pods again:
 
 ```
-kubectl apply -f ./deploy/stress/
+kubectl apply -f ./tutorial/stress/
 ```
 
 You can see that only 1 pod was able to be created, as there is no CPU left to schedule pods:
@@ -223,8 +223,8 @@ By rightsizing our application we reduce the risk of getting noisy neighbours in
 Before starting this exercise, clean the pods from the previous one:
 
 ```
-kubectl delete -f ./deploy/stress/
-kubectl delete -f ./deploy/fake-traffic/
+kubectl delete -f ./tutorial/stress/
+kubectl delete -f ./tutorial/fake-traffic/
 ```
 
 For this second exercise we will be using the node setup with the CPUManager static policy. Uncordon the static policy node and drain the none policy one:
@@ -237,13 +237,13 @@ kubectl drain perfapp-worker --ignore-daemonsets --delete-emptydir-data
 Redeploy the wrongly sized application:
 
 ```
-kubectl apply -f ./deploy/app_wrongly_sized/
+kubectl apply -f ./tutorial/app_wrongly_sized/
 ```
 
 Generate traffic that will force the `sync` service to use 3 full cores:
 
 ```
-kubectl apply -f ./deploy/fake-traffic/traffic_3_cores.yaml
+kubectl apply -f ./tutorial/fake-traffic/traffic_3_cores.yaml
 ```
 
 Check in [Datadog]() how this pod is using 3 cores of CPU:
@@ -252,12 +252,12 @@ Check in [Datadog]() how this pod is using 3 cores of CPU:
 
 ### Create a deployment that requests being pinned to 2 specific cores
 
-The [NGINX pod](./deploy/nginx_static.yaml) is requesting,  under the CPUManager policy, to be pinned to 2 specific cores, by setting its requests and limits to the same values, and having a integer in the number of CPU cores.
+The [NGINX pod](./tutorial/nginx_static.yaml) is requesting,  under the CPUManager policy, to be pinned to 2 specific cores, by setting its requests and limits to the same values, and having a integer in the number of CPU cores.
 
 Create this pod:
 
 ```
-kubectl apply -f ./deploy/nginx_static.yaml
+kubectl apply -f ./tutorial/nginx_static.yaml
 ```
 
 This pod is using very little CPU, yet, as it has exclusive access to its pinned cores, our application CPU usage decreases to 2 cores:

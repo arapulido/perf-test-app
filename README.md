@@ -33,29 +33,31 @@ It exposes two endpoints:
 
 **WARNING** This application uses `stress-ng` to load the CPUs. When you run this on your laptop (through `minikube` or `kind`, for example), the stress CPUs would be the ones in your laptop, which can make your system run hot. Use carefully.
 
-## Create a kind cluster
+We will be using cluster using `kind`. The tutorial assumes that you have assigned 4 CPUs to Docker.
 
-Using [`kind`](https://kind.sigs.k8s.io/) create a 3 node cluster named `perfapp` using the provided configuration file:
+## Exercise 1. Check increase of latency due to noisy neighbours (when badly sized)
+
+### Create a kind cluster
+
+Using [`kind`](https://kind.sigs.k8s.io/) create a 1 node cluster named `policynone` using the provided configuration file:
 
 ```
-kind create cluster --name perfapp --config ./tutorial/kind/cluster.yaml
+kind create cluster --name policynone --config ./tutorial/kind/none.yaml
 ```
 
-This will create a 3 node cluster with the following CPUManager configuration:
+This will create a 1 node cluster with the following CPUManager configuration:
 
 Node | CPUManager policy | Role |
 ---- | ----------------- | ----
-perfapp-control-plane | none | control-plane
-perfapp-worker | none | |
-perfapp-worker2 | static |
+policynone-control-plane | none | control-plane
 
-## Create the needed namespaces for the tutorial
+### Create the needed namespaces for the tutorial
 
 ```
 kubectl apply -f ./tutorial/namespaces.yaml
 ```
 
-## Deploy the Datadog Agent
+### Deploy the Datadog Agent
 
 The applications are already instrumented for APM with Datadog. To get metrics, traces, and logs into Datadog, follow the instructions below:
 
@@ -94,16 +96,7 @@ datadog-agent-wpb76                      3/3     Running   0          15m
 datadog-cluster-agent-66867b9594-bfsqm   1/1     Running   0          15m
 my-datadog-operator-7b8f9f669-jxsdx      1/1     Running   0          81m
 ```
-
-## Exercise 1. Check increase of latency due to noisy neighbours (when badly sized)
-
 ### Setup
-
-For this first exercise, we are going to use the worker node with the CPUManager `none` policy. Drain the one with the `static` policy:
-
-```
-kubectl drain perfapp-worker2 --ignore-daemonsets --delete-emptydir-data
-```
 
 Deploy the application wrongly sized (it doesn't have its CPU requests set at all):
 
@@ -125,9 +118,9 @@ kubectl apply -f ./tutorial/fake-traffic/regular-traffic.yaml
 
 This `busybox` pod calls the `webapp` `do_work` endpoint every 30 seconds, generating some load in both downstream services.
 
-Once the generated traffic has been running for a while, check the latency of the application in Datadog by visiting this url: <<<ADD URL>>>
+Once the generated traffic has been running for a while, check the latency of the application in Datadog by visiting [the Service Catalog page](https://app.datadoghq.com/services?env=perftesting).
 
-<<<ADD SCREENSHOT>>>
+![Latency in isolation](./static/latency_in_isolation.png)
 
 ### Add noisy neighbours
 
@@ -144,13 +137,17 @@ kubectl get pods -n stress
 ```
 
 ```
+NAME                       READY   STATUS    RESTARTS   AGE
+stress1-fdf68959c-7fhhk    1/1     Running   0          2m23s
+stress2-7b9558bb7b-dtlnp   1/1     Running   0          2m23s
+stress3-7c9f676775-jrrhf   1/1     Running   0          2m23s
 ```
 
 ### The tail latency of our application increases
 
 With the noisy neighbours in our same node, our application starts checking its effects. Check again the latency of the different services of the application:
 
-<<<ADD SCREENSHOT>>>
+![Latency with neighbours](./static/latency_with_neighbours.png)
 
 As you can see the, the tail latency of the different services has increased, as the `async` and `sync` services don't get enough CPU time for their needs.
 
@@ -176,79 +173,114 @@ You can check the differences between these and the previous definitions by runn
 diff -u --color ./tutorial/app_wrongly_sized ./tutorial/app_rightly_sized
 ```
 
-```
-diff --color -u --color tutorial/app_wrongly_sized/async.yaml tutorial/app_rightly_sized/async.yaml
---- tutorial/app_none_wrongly_sized/async.yaml	2024-11-11 15:15:06
-+++ tutorial/app_none_rightly_sized/async.yaml	2024-11-13 10:42:16
-@@ -48,7 +48,9 @@
-             value: "true"
-         ports:
-         - containerPort: 5002
--        resources: {}
-+        resources:
-+          requests:
-+            cpu: 800m
- ---
-diff --color -u --color tutorial/app_wrongly_sized/sync.yaml tutorial/app_rightly_sized/sync.yaml
---- tutorial/app_none_wrongly_sized/sync.yaml	2024-11-11 15:15:06
-+++ tutorial/app_none_rightly_sized/sync.yaml	2024-11-13 10:42:23
-@@ -48,7 +48,9 @@
-             value: "true"
-         ports:
-         - containerPort: 5001
--        resources: {}
-+        resources:
-+          requests:
-+            cpu: 800m
-```
-
 Now try to deploy the stress pods again:
 
 ```
 kubectl apply -f ./tutorial/stress/
 ```
 
-You can see that only 1 pod was able to be created, as there is no CPU left to schedule pods:
+You can see that only 2 pod was able to run, and 1 stayed as Pending, as there is no CPU left to schedule pods:
 
 ```
 kubectl get pods -n stress
+```
+
+```
+NAME                       READY   STATUS    RESTARTS   AGE
+stress1-fdf68959c-rdcvv    1/1     Running   0          4s
+stress2-7b9558bb7b-5q2lm   1/1     Running   0          4s
+stress3-7c9f676775-b9ljn   0/1     Pending   0          4s
 ```
 
 By rightsizing our application we reduce the risk of getting noisy neighbours in the same node.
 
 ## Exercise 2. Check the effect of containers pinned to specific cores with the CPUManager static policy
 
+First, delete the previous cluster:
+
+```
+kind delete cluster --name policynone
+```
+
+### Create a kind cluster
+
+Using [`kind`](https://kind.sigs.k8s.io/) create a 1 node cluster named `policystatic` using the provided configuration file:
+
+```
+kind create cluster --name policystatic --config ./tutorial/kind/static.yaml
+```
+
+This will create a 1 node cluster with the following CPUManager configuration:
+
+Node | CPUManager policy | Role |
+---- | ----------------- | ----
+policynone-control-plane | static | control-plane
+
+### Create the needed namespaces for the tutorial
+
+```
+kubectl apply -f ./tutorial/namespaces.yaml
+```
+
+### Deploy the Datadog Agent
+
+The applications are already instrumented for APM with Datadog. To get metrics, traces, and logs into Datadog, follow the instructions below:
+
+* Deploy the Datadog Operator:
+
+```
+helm repo add datadog https://helm.datadoghq.com
+helm install my-datadog-operator datadog/datadog-operator --namespace datadog
+```
+
+* Create a secret with your Datadog credentials. If you don't have a Datadog account, you can [create a free trial](https://www.datadoghq.com/free-datadog-trial/):
+
+```
+export DD_API_KEY=<YOUR_DD_API_KEY>
+export DD_APP_KEY=<YOUR_DD_APP_KEY>
+kubectl create secret generic datadog-secret --from-literal=api-key=$DD_API_KEY --from-literal=app-key=$DD_APP_KEY -n datadog
+```
+
+* Deploy the Datadog Agent:
+
+```
+kubectl apply -f ./tutorial/datadog/datadog.yaml
+```
+
+* Wait until the Cluster Agent and the Node Agents are up and running:
+
+```
+kubectl get pods -n datadog
+```
+
+```
+NAME                                     READY   STATUS    RESTARTS   AGE
+datadog-agent-wpb76                      3/3     Running   0          15m
+datadog-cluster-agent-66867b9594-bfsqm   1/1     Running   0          15m
+my-datadog-operator-7b8f9f669-jxsdx      1/1     Running   0          81m
+```
 ### Setup
 
-Before starting this exercise, clean the pods from the previous one:
-
-```
-kubectl delete -f ./tutorial/stress/
-kubectl delete -f ./tutorial/fake-traffic/
-```
-
-For this second exercise we will be using the node setup with the CPUManager static policy. Uncordon the static policy node and drain the none policy one:
-
-```
-kubectl uncordon perfapp-worker2
-kubectl drain perfapp-worker --ignore-daemonsets --delete-emptydir-data
-```
-
-Redeploy the wrongly sized application:
+Deploy the application wrongly sized (it doesn't have its CPU requests set at all):
 
 ```
 kubectl apply -f ./tutorial/app_wrongly_sized/
 ```
 
+Check that the pods are running correctly:
+
+```
+kubectl get pods -n perfapp
+```
 Generate traffic that will force the `sync` service to use 3 full cores:
 
 ```
 kubectl apply -f ./tutorial/fake-traffic/traffic_3_cores.yaml
 ```
 
-Check in [Datadog]() how this pod is using 3 cores of CPU:
+Check in [Datadog](https://app.datadoghq.com/orchestration/explorer/pod?query=kube_deployment%3Asyncsvc) how the sync pod is using 3 cores of CPU:
 
-<<<ADD SCREENSHOT>>>
+![Sync pod using 3 cores](./static/before_static_assignment.png)
 
 ### Create a deployment that requests being pinned to 2 specific cores
 
@@ -262,4 +294,4 @@ kubectl apply -f ./tutorial/nginx_static.yaml
 
 This pod is using very little CPU, yet, as it has exclusive access to its pinned cores, our application CPU usage decreases to 2 cores:
 
-<<<ADD SCREENSHOT>>>
+![Sync pod using 2 cores](./static/after_static_assignment.png)

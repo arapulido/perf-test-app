@@ -5,6 +5,7 @@ metadata:
     service: syncsvc
     app: perfapp
   name: syncsvc
+  namespace: perfapp
 spec:
   replicas: 1
   selector:
@@ -59,6 +60,7 @@ metadata:
     service: syncsvc
     app: perfapp
   name: sync
+  namespace: perfapp
 spec:
   ports:
   - port: 5001

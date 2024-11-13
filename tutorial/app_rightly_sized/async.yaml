@@ -5,6 +5,7 @@ metadata:
     service: asyncsvc
     app: perfapp
   name: asyncsvc
+  namespace: perfapp
 spec:
   replicas: 1
   selector:
@@ -59,6 +60,7 @@ metadata:
     service: asyncsvc
     app: perfapp
   name: async
+  namespace: perfapp
 spec:
   ports:
   - port: 5002

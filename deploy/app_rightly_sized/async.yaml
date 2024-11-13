@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    service: asyncsvc
+    app: perfapp
+  name: asyncsvc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: asyncsvc
+      app: perfapp
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        service: asyncsvc
+        app: perfapp
+    spec:
+      containers:
+      - image: arapulido/perf_app_load:latest
+        imagePullPolicy: Always
+        name: asyncapp
+        command: ["ddtrace-run"]
+        args: ["flask", "run", "--port=5002", "--host=0.0.0.0"]
+        env:
+          - name: FLASK_APP
+            value: "index.py"
+          - name: FLASK_DEBUG
+            value: "1"
+          - name: DD_ENV
+            value: "perftesting"
+          - name: DD_VERSION
+            value: "1.0"
+          - name: DD_SERVICE
+            value: "asyncsvc"
+          - name: DD_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: DD_LOGS_INJECTION
+            value: "true"
+          - name: DD_ANALYTICS_ENABLED
+            value: "true"
+          - name: DD_PROFILING_ENABLED
+            value: "true"
+        ports:
+        - containerPort: 5002
+        resources:
+          requests:
+            cpu: 800m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    service: asyncsvc
+    app: perfapp
+  name: async
+spec:
+  ports:
+  - port: 5002
+    protocol: TCP
+    targetPort: 5002
+  selector:
+    service: asyncsvc
+    app: perfapp
+status:

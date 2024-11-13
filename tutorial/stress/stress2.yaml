@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: stress2
+  name: stress2
+  namespace: stress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stress2
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: stress2
+    spec:
+      containers:
+      - image: arapulido/stressng
+        command: ["stress-ng", "--cpu", "1", "--cpu-load", "100", "--cpu-load-slice", "100", "--cpu-ops", "100000"]
+        name: stress
+        resources:
+          limits:
+            cpu: 1
+            memory: "256Mi"
+      dnsPolicy: ClusterFirst

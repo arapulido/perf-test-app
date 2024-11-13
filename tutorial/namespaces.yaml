@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: datadog
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: perfapp
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stress
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fake-traffic
+---
